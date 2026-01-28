@@ -12,6 +12,19 @@ from dataclasses import dataclass, field
 from .meta_learning import MetaLearningEngine
 from .reflection import ReflectionEngine
 from .version_control import VersionController
+import sys
+from pathlib import Path
+
+# Add shared module to path
+shared_path = Path(__file__).parent.parent.parent / "shared"
+if str(shared_path) not in sys.path:
+    sys.path.insert(0, str(shared_path))
+
+try:
+    from git_auto_commit import GitAutoCommit
+    GIT_AUTO_COMMIT_AVAILABLE = True
+except ImportError:
+    GIT_AUTO_COMMIT_AVAILABLE = False
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -55,7 +68,18 @@ class MIRROREngine:
         self.meta_learner = MetaLearningEngine()
         self.reflection = ReflectionEngine()
         self.version_ctrl = VersionController()
-        
+
+        # Git auto-commit (optional)
+        self.git_commit = None
+        if GIT_AUTO_COMMIT_AVAILABLE:
+            try:
+                self.git_commit = GitAutoCommit(
+                    repo_path=str(Path(__file__).parent.parent.parent),
+                    allowed_paths=['submissions/', 'versions/', '.omc/']
+                )
+            except Exception as e:
+                logger.info(f"Git auto-commit not available: {e}")
+
         # 에이전트 레지스트리
         self.agents: Dict[str, Any] = {}
         
@@ -115,7 +139,17 @@ class MIRROREngine:
             
             # 6. 버전 컨트롤: commit
             self._commit_iteration(iteration, improved_submission, evaluation, reflection)
-            
+
+            # 6.5. Git auto-commit (every 3 iterations or on score improvement)
+            if self.git_commit and (iteration % 3 == 0 or current_score > self.best_score):
+                prev_score = self.iteration_history[-1].evaluation.get('total_score', 0) if self.iteration_history else 0
+                self.git_commit.commit_iteration(
+                    iteration=iteration,
+                    score=current_score,
+                    prev_score=prev_score,
+                    improvements=reflection.get('improvements', [])
+                )
+
             # 7. 히스토리 저장
             self.iteration_history.append(IterationData(
                 iteration=iteration,

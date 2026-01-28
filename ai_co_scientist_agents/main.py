@@ -25,6 +25,15 @@ from agents.ai_logging import AILoggingAgent
 from agents.validation import ValidationAgent
 from agents.quality import QualityAssuranceAgent
 from config.settings import RESEARCH_TOPIC, RESEARCH_FIELD, TARGET_DATE, AI_MODELS
+import sys
+from pathlib import Path
+
+# Add shared module to path
+shared_path = Path(__file__).parent.parent / "shared"
+if str(shared_path) not in sys.path:
+    sys.path.insert(0, str(shared_path))
+
+from git_auto_commit import GitAutoCommit
 
 # 로깅 설정
 def setup_logging():
@@ -75,7 +84,7 @@ class InfiniteLoopWorkflow:
         self.target_score = target_score
         self.max_iterations = max_iterations
         self.current_iteration = 0
-        
+
         # 에이전트 초기화
         self.director = ResearchDirectorAgent()
         self.literature_agent = LiteratureReviewAgent()
@@ -85,7 +94,22 @@ class InfiniteLoopWorkflow:
         self.ai_logger = AILoggingAgent()
         self.validator = ValidationAgent()
         self.quality_agent = QualityAssuranceAgent()
-        
+
+        # Git auto-commit (optional - enabled if git repo available)
+        self.git_commit = None
+        try:
+            self.git_commit = GitAutoCommit(
+                repo_path=str(Path(__file__).parent.parent),
+                allowed_paths=['outputs/', 'logs/', '.omc/']
+            )
+            pre_flight = self.git_commit.pre_flight_check()
+            if pre_flight['valid_repo'] and pre_flight['has_remote']:
+                logger.info("Git auto-commit enabled")
+            else:
+                self.git_commit = None
+        except Exception as e:
+            logger.info(f"Git auto-commit not available: {e}")
+
         logger.info(f"InfiniteLoopWorkflow initialized")
         logger.info(f"Target score: {target_score}, Max iterations: {max_iterations}")
     
@@ -205,11 +229,22 @@ class InfiniteLoopWorkflow:
             logger.info(f"AI Contribution: {ai_contribution}")
             
             # 최고 점수 업데이트
+            prev_score = best_score
             if total_score > best_score:
                 best_score = total_score
                 best_results = results.copy()
                 logger.info(f"New best score: {best_score}")
-            
+
+            # Git commit (every 3 iterations or on improvement)
+            if self.git_commit and (iteration % 3 == 0 or total_score > prev_score):
+                improvements = quality_result.get('improvement_areas', [])
+                self.git_commit.commit_iteration(
+                    iteration=iteration,
+                    score=total_score,
+                    prev_score=prev_score,
+                    improvements=[{'area': imp} for imp in improvements]
+                )
+
             # 품질 기준 충족 확인
             if total_score >= self.target_score and ai_contribution == "PASS":
                 logger.info(f"\n{'='*60}")

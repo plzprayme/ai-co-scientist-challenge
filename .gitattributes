@@ -1,0 +1,40 @@
+# Auto detect text files and perform LF normalization
+* text=auto
+
+# Source code
+*.py text eol=lf
+*.sh text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.txt text eol=lf
+
+# Windows specific
+*.bat text eol=crlf
+
+# Documents
+*.pdf binary
+*.docx binary
+*.xlsx binary
+
+# Images
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.svg binary
+
+# Archives
+*.zip binary
+*.tar.gz binary
+*.7z binary
+
+# Model files
+*.pkl binary
+*.h5 binary
+*.pb binary
+
+# Large data files
+*.csv diff=csv
+*.json diff=json

@@ -16,6 +16,17 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+# Add shared module to path
+shared_path = Path(__file__).parent.parent / "shared"
+if str(shared_path) not in sys.path:
+    sys.path.insert(0, str(shared_path))
+
+try:
+    from git_auto_commit import GitAutoCommit
+    GIT_AUTO_COMMIT_AVAILABLE = True
+except ImportError:
+    GIT_AUTO_COMMIT_AVAILABLE = False
+
 # 설정
 WORKSPACE = Path("workspace")
 STATE_FILE = WORKSPACE / "state.json"
@@ -23,6 +34,9 @@ RUBRIC_FILE = WORKSPACE / "rubric.json"
 SUBMISSION_DIR = WORKSPACE / "submission"
 HISTORY_DIR = WORKSPACE / "history"
 LEARNINGS_DIR = WORKSPACE / "learnings"
+
+# Git auto-commit (optional - initialized in main())
+git_commit = None
 
 # 심사 기준 (100점 만점)
 RUBRIC = {
@@ -45,7 +59,19 @@ def init_workspace():
     SUBMISSION_DIR.mkdir(exist_ok=True)
     HISTORY_DIR.mkdir(exist_ok=True)
     LEARNINGS_DIR.mkdir(exist_ok=True)
-    
+
+    # Initialize git auto-commit
+    global git_commit
+    if GIT_AUTO_COMMIT_AVAILABLE:
+        try:
+            git_commit = GitAutoCommit(
+                repo_path=str(Path(__file__).parent.parent),
+                allowed_paths=['workspace/', '.omc/']
+            )
+            print("Git auto-commit enabled")
+        except Exception as e:
+            print(f"Git auto-commit not available: {e}")
+
     # 심사 기준 저장
     with open(RUBRIC_FILE, 'w', encoding='utf-8') as f:
         json.dump(RUBRIC, f, ensure_ascii=False, indent=2)
@@ -417,10 +443,29 @@ def phase_evaluate(state):
         state['phase'] = 'improve'
     
     # 최고 점수 업데이트
+    prev_score = state['best_score']
     if total > state['best_score']:
         state['best_score'] = total
         print(f"✨ 새로운 최고 점수: {total}")
-    
+
+    # Git commit (on score improvement)
+    if git_commit and total > prev_score:
+        weaknesses = state.get('current_weaknesses', [])
+        improvements = [
+            {
+                'criterion': w['criterion'],
+                'action': f"Improve {w['criterion']} (gap: {w['gap']:.1f})",
+                'priority': 'high' if w['gap'] > 5 else 'medium'
+            }
+            for w in weaknesses[:3]
+        ]
+        git_commit.commit_iteration(
+            iteration=state['iteration'],
+            score=total,
+            prev_score=prev_score,
+            improvements=improvements
+        )
+
     save_state(state)
 
 
