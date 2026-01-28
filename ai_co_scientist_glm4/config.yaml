@@ -1,0 +1,113 @@
+# RALP-MIRROR Configuration
+# 2026 AI Co-Scientist Challenge Korea - Track 1
+
+# 연구 설정
+research:
+  topic: "AI-driven methodology for enhancing scientific research efficiency"
+  field: "materials_chemistry"  # bio, materials_chemistry, earth_science, semiconductor, battery, energy, math
+  language: "english"
+
+# 목표 설정
+target:
+  score: 85  # 목표 점수 (100점 만점)
+  max_iterations: 50  # 최대 반복 횟수
+  min_ai_contribution: 50  # 최소 AI 기여도 (%)
+
+# GLM-4.7 설정
+model:
+  name: "glm-4.7"
+  api_key: null  # 환경변수 GLM4_API_KEY 사용 권장
+  
+  # 생성 파라미터
+  default_temperature: 0.7
+  default_max_tokens: 4096
+  default_top_p: 0.7
+  
+  # 평가 파라미터 (self-consistency)
+  evaluation_temps: [0.3, 0.7, 1.0]  # 3번 평가
+  
+  # 개선 파라미터
+  improvement_temperature: 0.8
+  improvement_max_tokens: 8000
+
+# 심사 기준 (100점 만점)
+rubric:
+  practicality:
+    max: 20
+    name: "주제의 실용성"
+    description: "연구가 실제로 유의미하고 실질적인 문제를 다루는가"
+    weight: 1.0
+  
+  methodology:
+    max: 20
+    name: "방법론의 적절성"
+    description: "연구 방법론이 명확하고 과학적인가"
+    weight: 1.0
+  
+  data_quality:
+    max: 25
+    name: "데이터의 적절성"
+    description: "데이터가 논리적이고 신뢰할 수 있는가"
+    weight: 1.0
+  
+  conclusion:
+    max: 10
+    name: "결론의 합리성"
+    description: "결론이 과학적 사실에 부합하는가"
+    weight: 1.0
+  
+  readability:
+    max: 5
+    name: "전달력 및 가독성"
+    description: "영문으로 명확하게 전달되었는가"
+    weight: 1.0
+  
+  creativity:
+    max: 20
+    name: "연구의 창의성 및 참신성"
+    description: "차별화된 창의적 접근인가"
+    weight: 1.0
+  
+  ai_contribution:
+    type: "pass_fail"
+    name: "AI 연구기여도"
+    description: "AI가 충분히 기여했는가 (50%+ 기여)"
+    weight: 1.0
+
+# arxiv 검색 설정
+arxiv:
+  max_results: 10
+  sort_by: "relevance"  # relevance, submitted_date, last_updated
+  categories:
+    - "cs.AI"
+    - "cs.LG"
+    - "cs.CL"
+
+# 파일 경로
+paths:
+  workspace: "workspace"
+  submission: "workspace/submission"
+  history: "workspace/history"
+  learnings: "workspace/learnings"
+  prompts: "workspace/prompts"
+
+# 로깅 설정
+logging:
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file: "workspace/ralp_mirror.log"
+
+# RALP 통합 설정
+ralp:
+  # RALP가 호출할 명령어
+  command: "python main_ralp.py"
+  
+  # 타임아웃 (초)
+  timeout: 300
+  
+  # 재시도 설정
+  max_retries: 10
+  retry_delay: 5
+  
+  # 자동 복구
+  auto_recovery: true

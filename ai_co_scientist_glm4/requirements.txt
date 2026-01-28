@@ -1,0 +1,20 @@
+# RALP-MIRROR Requirements
+# 2026 AI Co-Scientist Challenge Korea - Track 1
+
+# GLM-4.7 API
+zhipuai>=2.0.0
+
+# Academic Search
+arxiv>=1.4.0
+
+# Data Processing
+pyyaml>=6.0
+requests>=2.28.0
+
+# Utilities
+tqdm>=4.65.0
+python-dotenv>=1.0.0
+
+# Optional: Enhanced functionality
+# numpy>=1.24.0
+# pandas>=2.0.0
